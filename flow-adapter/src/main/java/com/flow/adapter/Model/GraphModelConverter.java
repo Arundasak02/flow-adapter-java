@@ -7,10 +7,6 @@ import java.util.Set;
 
 public class GraphModelConverter {
 
-  private static final String CALL_EDGE_TYPE = "CALL";
-  private static final String HANDLES_EDGE_TYPE = "HANDLES";
-  private static final String PRODUCES_EDGE_TYPE = "PRODUCES";
-  private static final String CONSUMES_EDGE_TYPE = "CONSUMES";
 
   public static UnifiedGraphModel convert(GraphModel legacy) {
     UnifiedGraphModel unified = new UnifiedGraphModel(legacy.projectId);
@@ -127,7 +123,7 @@ public class GraphModelConverter {
       counter++;
       String normalizedFrom = normalizeMethodIdInEdge(call.from);
       String normalizedTo = normalizeMethodIdInEdge(call.to);
-      unified.addEdge("e-call-" + counter, normalizedFrom, normalizedTo, CALL_EDGE_TYPE);
+      unified.addEdge("e-call-" + counter, normalizedFrom, normalizedTo, EdgeType.CALL);
     }
   }
 
@@ -139,7 +135,7 @@ public class GraphModelConverter {
           extractHttpMethodFromEndpointId(edge.fromEndpoint),
           extractPathFromEndpointId(edge.fromEndpoint));
       String normalizedMethodId = normalizeMethodIdInEdge(edge.toMethod);
-      unified.addEdge("e-endpoint-" + counter, normalizedEndpointId, normalizedMethodId, HANDLES_EDGE_TYPE);
+      unified.addEdge("e-endpoint-" + counter, normalizedEndpointId, normalizedMethodId, EdgeType.HANDLES);
     }
   }
 
@@ -160,14 +156,14 @@ public class GraphModelConverter {
   private static void addProducesEdge(UnifiedGraphModel unified, String edgeId, GraphModel.MessagingEdge edge) {
     String normalizedFrom = normalizeMethodIdInEdge(edge.from);
     String normalizedTo = SignatureNormalizer.normalizeTopicId(edge.to);
-    unified.addEdge(edgeId, normalizedFrom, normalizedTo, PRODUCES_EDGE_TYPE);
+    unified.addEdge(edgeId, normalizedFrom, normalizedTo, EdgeType.PRODUCES);
   }
 
   private static void addConsumesEdge(UnifiedGraphModel unified, String edgeId, GraphModel.MessagingEdge edge) {
     String topicId = extractTopicNameFromMessagingEdge(edge.to);
     String methodId = normalizeMethodIdInEdge(edge.from);
     String normalizedTopic = SignatureNormalizer.normalizeTopicId(topicId);
-    unified.addEdge(edgeId, normalizedTopic, methodId, CONSUMES_EDGE_TYPE);
+    unified.addEdge(edgeId, normalizedTopic, methodId, EdgeType.CONSUMES);
   }
 
   private static void addMethodToClassEdges(UnifiedGraphModel unified, Map<String, GraphModel.MethodNode> methods) {
