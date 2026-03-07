@@ -44,13 +44,15 @@ public class UnifiedGraphModel {
     return nodeMap.get(id);
   }
 
-  /**
-   * Add an edge to the graph
-   */
-  public void addEdge(String from, String to, String type) {
+  public void addEdge(String from, String to, EdgeType type) {
     edgeCounter++;
-    String edgeId = "e-" + type.toLowerCase() + "-" + edgeCounter;
+    String edgeId = "e-" + type.name().toLowerCase() + "-" + edgeCounter;
     addEdge(edgeId, from, to, type);
+  }
+
+  public void addEdge(String edgeId, String from, String to, EdgeType type) {
+    Edge e = new Edge(edgeId, from, to, type.name());
+    edges.add(e);
   }
 
   public void addEdge(String edgeId, String from, String to, String type) {
@@ -79,12 +81,12 @@ public class UnifiedGraphModel {
     return n;
   }
 
-  public Node addMethod(String methodId, String methodName, String visibility,
+  public Node addMethod(String methodId, String methodName, Visibility visibility,
                         String className, String packageName, String moduleName, String signature) {
-    String type = "private".equals(visibility) ? "PRIVATE_METHOD" : "METHOD";
+    String type = visibility == Visibility.PRIVATE ? "PRIVATE_METHOD" : "METHOD";
     String displayName = className != null ? className + "." + methodName : methodName;
     Node n = ensureNode(methodId, type, displayName);
-    n.data.put("visibility", visibility);
+    n.data.put("visibility", visibility.name());
     n.data.put("className", className);
     n.data.put("packageName", packageName);
     if (moduleName != null) {
@@ -94,6 +96,12 @@ public class UnifiedGraphModel {
       n.data.put("signature", signature);
     }
     return n;
+  }
+
+  public Node addMethod(String methodId, String methodName, String visibility,
+                        String className, String packageName, String moduleName, String signature) {
+    return addMethod(methodId, methodName, Visibility.fromString(visibility),
+        className, packageName, moduleName, signature);
   }
 
   /**
@@ -125,17 +133,14 @@ public class UnifiedGraphModel {
     return n;
   }
 
-  /**
-   * Add an edge from METHOD to CLASS
-   */
   public void addMethodToClassEdge(String methodId, String classId) {
     String edgeId = "e-method-class-" + edges.size();
-    addEdge(edgeId, methodId, classId, "DEFINES");
+    addEdge(edgeId, methodId, classId, EdgeType.DEFINES);
   }
 
   public void addClassToServiceEdge(String classId, String serviceId) {
     String edgeId = "e-class-service-" + edges.size();
-    addEdge(edgeId, classId, serviceId, "BELONGS_TO");
+    addEdge(edgeId, classId, serviceId, EdgeType.BELONGS_TO);
   }
 }
 

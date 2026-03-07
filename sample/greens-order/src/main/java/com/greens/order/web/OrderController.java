@@ -1,5 +1,6 @@
 package com.greens.order.web;
 
+import com.greens.order.core.OrderService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -8,7 +9,7 @@ public class OrderController {
 
   @PostMapping("/{id}")
   public String placeOrder(@PathVariable String id) {
-    return new com.greens.order.core.OrderService().placeOrder(id);
+    return new OrderService().placeOrder(id);
   }
 
   @GetMapping("/{id}")

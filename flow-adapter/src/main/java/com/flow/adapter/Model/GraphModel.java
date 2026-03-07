@@ -46,7 +46,8 @@ public class GraphModel {
 
   public static class MethodNode {
 
-    public String id, className, methodName, signature, visibility, packageName, moduleName;
+    public String id, className, methodName, signature, packageName, moduleName;
+    public Visibility visibility;
   }
 
   public static class EndpointNode {
