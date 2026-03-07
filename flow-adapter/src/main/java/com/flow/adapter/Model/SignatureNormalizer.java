@@ -1,16 +1,40 @@
 package com.flow.adapter.Model;
 
-import java.util.regex.Pattern;
-
 public class SignatureNormalizer {
 
-  private static final Pattern FQN_PATTERN = Pattern.compile("\\b[a-z][a-z0-9]*(?:\\.[a-z0-9$_]+)*\\.([A-Z][a-zA-Z0-9$_]*)\\b");
-
+  /**
+   * Normalizes signature types to match the runtime agent's NodeIdBuilder.simplifyType().
+   *
+   * RULES (must match agent exactly):
+   * - java.lang.{String,Integer,Long,Boolean,Double,Float,Object,Byte,Short,Character} → simple name
+   * - java.util.{List,Map,Set,Optional} → simple name
+   * - All other FQN types remain fully qualified
+   */
   public static String normalizeSignature(String signature) {
     if (signature == null || signature.isEmpty()) {
       return signature;
     }
-    return FQN_PATTERN.matcher(signature).replaceAll("$1");
+    String result = signature;
+
+    // java.lang.*
+    result = result.replace("java.lang.String", "String");
+    result = result.replace("java.lang.Integer", "Integer");
+    result = result.replace("java.lang.Long", "Long");
+    result = result.replace("java.lang.Boolean", "Boolean");
+    result = result.replace("java.lang.Double", "Double");
+    result = result.replace("java.lang.Float", "Float");
+    result = result.replace("java.lang.Object", "Object");
+    result = result.replace("java.lang.Byte", "Byte");
+    result = result.replace("java.lang.Short", "Short");
+    result = result.replace("java.lang.Character", "Character");
+
+    // java.util.*
+    result = result.replace("java.util.List", "List");
+    result = result.replace("java.util.Map", "Map");
+    result = result.replace("java.util.Set", "Set");
+    result = result.replace("java.util.Optional", "Optional");
+
+    return result;
   }
 
   public static String createNormalizedMethodId(String className, String methodName, String signature) {

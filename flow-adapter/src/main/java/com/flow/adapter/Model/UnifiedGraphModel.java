@@ -12,6 +12,7 @@ import java.util.Map;
 public class UnifiedGraphModel {
 
   public String graphId;
+  public String version = "1";
   public List<Node> nodes = new ArrayList<>();
   public List<Edge> edges = new ArrayList<>();
 

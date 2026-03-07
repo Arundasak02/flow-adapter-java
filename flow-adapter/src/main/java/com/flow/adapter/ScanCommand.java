@@ -1,6 +1,8 @@
 package com.flow.adapter;
 
 import com.flow.adapter.Model.GraphModel;
+import com.flow.adapter.Model.GraphModelConverter;
+import com.flow.adapter.Model.UnifiedGraphModel;
 import com.flow.adapter.scanners.JavaSourceScanner;
 import com.flow.adapter.util.ConfigLoader;
 import java.nio.file.Files;
@@ -21,6 +23,10 @@ public class ScanCommand implements Runnable {
   private String out;
   @Option(names = "--project", required = true)
   private String projectId;
+  @Option(names = "--server", description = "Flow Core Service URL (e.g. http://localhost:8080). If set, publishes graph to the server.")
+  private String serverUrl;
+  @Option(names = "--api-key", description = "API key for authentication with Flow Core Service")
+  private String apiKey;
 
   @Override
   public void run() {
@@ -53,6 +59,12 @@ public class ScanCommand implements Runnable {
 
       new GraphExporterJson().write(model, outPath);
       System.out.println("Graph written to: " + outPath.toAbsolutePath());
+
+      if (serverUrl != null && !serverUrl.isEmpty()) {
+        UnifiedGraphModel unified = GraphModelConverter.convert(model);
+        new GraphPublisher(serverUrl, apiKey).publish(unified);
+        System.out.println("Graph published to: " + serverUrl);
+      }
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(1);

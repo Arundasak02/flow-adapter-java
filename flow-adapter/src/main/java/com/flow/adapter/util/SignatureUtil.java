@@ -8,7 +8,7 @@ public class SignatureUtil {
 
   public static String signatureOf(MethodDeclaration md) {
     String params = md.getParameters().stream().map(p -> p.getType().toString())
-        .collect(Collectors.joining(","));
+        .collect(Collectors.joining(", "));
     String ret = md.getType().toString();
     return md.getNameAsString() + "(" + params + "):" + ret;
   }
@@ -18,7 +18,7 @@ public class SignatureUtil {
     for (int i = 0; i < md.getNumberOfParams(); i++) {
       b.append(md.getParam(i).getType().describe());
       if (i < md.getNumberOfParams() - 1) {
-        b.append(",");
+        b.append(", ");
       }
     }
     String ret = md.getReturnType().describe();
