@@ -16,6 +16,26 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!--
+      Flow static scan properties.
+      These run automatically after `mvn package`.
+      Override on the command line, e.g.:
+        mvn package -Dflow.scan.src=/path/to/src -Dflow.scan.project=my-app
+      Set -Dflow.scan.skip=true to disable the scan entirely.
+    -->
+    <!-- Source root to scan -->
+    <flow.scan.src>${maven.multiModuleProjectDirectory}/sample/greens-order/src/main/java</flow.scan.src>
+    <!-- Graph/project ID written into flow.json -->
+    <flow.scan.project>my-service</flow.scan.project>
+    <!-- Output path for flow.json -->
+    <flow.scan.out>${maven.multiModuleProjectDirectory}/flow.json</flow.scan.out>
+    <!-- Config dir (for placeholder resolution in annotations) -->
+    <flow.scan.config>${maven.multiModuleProjectDirectory}/sample/greens-order/src/main/resources</flow.scan.config>
+    <!-- FCS server URL - leave blank to write flow.json locally only (no publish) -->
+    <flow.scan.server/>
+    <!-- Set true to skip scan without changing the exec plugin config -->
+    <flow.scan.skip>false</flow.scan.skip>
   </properties>
 
   <dependencies>
@@ -49,6 +69,8 @@
 
   <build>
     <plugins>
+
+      <!-- 1. Compiler -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -57,6 +79,8 @@
           <release>17</release>
         </configuration>
       </plugin>
+
+      <!-- 2. Shade - produces the fat JAR first (package phase, default order) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -72,12 +96,61 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.flow.runner.Main</mainClass>
                 </transformer>
+                <!--
+                  ServicesResourceTransformer merges all META-INF/services files
+                  from all JARs (flow-adapter, flow-spring-plugin, flow-kafka-plugin)
+                  into one file in the fat JAR so ServiceLoader finds all plugins.
+                -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               </transformers>
             </configuration>
           </execution>
         </executions>
       </plugin>
+
+      <!--
+        3. Auto static scan.
+        Fires in the package phase AFTER the shade plugin has produced the fat JAR.
+        Plugin failures inside the scan are non-fatal - see ScanCommand.java.
+        The build only fails if:
+          (a) the source directory does not exist (flow.scan.src points to wrong path)
+          (b) the output file cannot be written
+        Everything else (missing plugins, FCS unreachable) is a WARNING.
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>flow-static-scan</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <skip>${flow.scan.skip}</skip>
+              <executable>java</executable>
+              <arguments>
+                <argument>-jar</argument>
+                <argument>${project.build.directory}/${project.artifactId}-${project.version}.jar</argument>
+                <argument>scan</argument>
+                <argument>--src</argument>
+                <argument>${flow.scan.src}</argument>
+                <argument>--project</argument>
+                <argument>${flow.scan.project}</argument>
+                <argument>--out</argument>
+                <argument>${flow.scan.out}</argument>
+                <argument>--config</argument>
+                <argument>${flow.scan.config}</argument>
+                <argument>--server</argument>
+                <argument>${flow.scan.server}</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 </project>
