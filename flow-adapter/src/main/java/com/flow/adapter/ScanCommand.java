@@ -66,32 +66,73 @@ public class ScanCommand implements Runnable {
     // ── 4. Plugin enrichment (each plugin is isolated — one failure != abort) ─
     runPlugins(model, srcRoot, config);
 
-    // ── 5. Write output ───────────────────────────────────────────────────────
+    // ── 5. Convert to unified model (single conversion point) ────────────────
+    UnifiedGraphModel unified = GraphModelConverter.convert(model);
+
+    // ── 6. Write primary output file ──────────────────────────────────────────
     Path outPath = out != null ? Paths.get(out) : Paths.get("flow.json");
+    try {
+      writeGraph(unified, outPath);
+    } catch (RuntimeException e) {
+      log.error("[flow-adapter] FATAL: {}", e.getMessage(), e);
+      System.exit(1);
+    }
+
+    // ── 7. Bundle graph into META-INF/flow/flow.json (for Runtime Agent pickup) ─
+    //    The Runtime Agent reads this on JVM startup and pushes it to FCS,
+    //    so the JAR itself is self-contained — no build-time network call needed.
+    Path metaInfPath = outPath.getParent() != null
+        ? outPath.getParent().resolve("classes/META-INF/flow/flow.json")
+        : Paths.get("target/classes/META-INF/flow/flow.json");
+    try {
+      writeGraph(unified, metaInfPath);
+      log.info("[flow-adapter] Graph bundled for Runtime Agent: {}", metaInfPath.toAbsolutePath());
+    } catch (RuntimeException e) {
+      // Not fatal — primary flow.json was already written.
+      // The Runtime Agent can fall back to the --server flag at startup.
+      log.warn("[flow-adapter] Could not bundle graph into META-INF (Runtime Agent will use --server at startup): {}",
+          e.getMessage());
+    }
+
+    // ── 8. Publish to FCS (optional — failure is warned, never fatal) ─────────
+    if (serverUrl != null && !serverUrl.isBlank()) {
+      publishToFcs(unified);
+    }
+  }
+
+  /**
+   * Writes the unified graph to {@code outPath}, creating parent directories as needed.
+   *
+   * @throws RuntimeException wrapping the original IO failure so the caller can decide
+   *                          whether to abort (primary output) or warn (bundled copy).
+   */
+  private void writeGraph(UnifiedGraphModel unified, Path outPath) {
     try {
       Path parent = outPath.getParent();
       if (parent != null) {
         Files.createDirectories(parent);
       }
-      new GraphExporterJson().write(model, outPath);
+      new GraphExporterJson().writeUnified(unified, outPath);
       log.info("[flow-adapter] Graph written to: {}", outPath.toAbsolutePath());
     } catch (Exception e) {
-      log.error("[flow-adapter] FATAL: could not write output file {}: {}", outPath, e.getMessage(), e);
-      System.exit(1);
+      throw new RuntimeException("Could not write graph to " + outPath + ": " + e.getMessage(), e);
     }
+  }
 
-    // ── 6. Publish to FCS (optional — failure is warned, not fatal) ──────────
-    if (serverUrl != null && !serverUrl.isBlank()) {
-      try {
-        UnifiedGraphModel unified = GraphModelConverter.convert(model);
-        new GraphPublisher(serverUrl, apiKey).publish(unified);
-        log.info("[flow-adapter] Graph published to: {}", serverUrl);
-      } catch (Exception e) {
-        // Publish failure must NOT fail the build — the flow.json was already written locally.
-        // CI pipelines that run without FCS reachable must still succeed.
-        log.warn("[flow-adapter] WARN: publish to {} failed (graph was still written locally): {}",
-            serverUrl, e.getMessage());
-      }
+  private void publishToFcs(UnifiedGraphModel unified) {
+    GraphPublisher.PublishResult result = new GraphPublisher(serverUrl, apiKey).publish(unified);
+    switch (result) {
+      case OK ->
+          log.info("[flow-adapter] Graph published to FCS at {}", serverUrl);
+      case FCS_UNREACHABLE ->
+          log.warn("[flow-adapter] FCS not reachable at {} — graph was written locally as flow.json. " +
+                   "The Runtime Agent will deliver it on next JVM startup.", serverUrl);
+      case FCS_ERROR ->
+          log.warn("[flow-adapter] FCS rejected the graph at {} — check FCS logs. " +
+                   "Graph is still available locally as flow.json.", serverUrl);
+      case LOCAL_ERROR ->
+          log.error("[flow-adapter] Local error prevented publishing to FCS — " +
+                    "check graph serialisation. flow.json was still written.");
     }
   }
 
