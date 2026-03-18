@@ -187,10 +187,19 @@ public class GraphPublisher {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("graphId", model.graphId);
         request.put("version", model.version);
-        request.put("graphHash", computeHash(model));
+        request.put("graphHash", resolveGraphHash(model));
         request.put("nodes", nodes);
         request.put("edges", edges);
+        request.put("metadata", model.metadata);
         return request;
+    }
+
+    private String resolveGraphHash(UnifiedGraphModel model) {
+        Object hashInMetadata = model.metadata != null ? model.metadata.get("graphHash") : null;
+        if (hashInMetadata instanceof String hash && !hash.isBlank()) {
+            return hash;
+        }
+        return computeHash(model);
     }
 
     /**

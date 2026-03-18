@@ -13,6 +13,7 @@ public class UnifiedGraphModel {
 
   public String graphId;
   public String version = "1";
+  public Map<String, Object> metadata = new HashMap<>();
   public List<Node> nodes = new ArrayList<>();
   public List<Edge> edges = new ArrayList<>();
 
