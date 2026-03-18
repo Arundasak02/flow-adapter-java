@@ -68,6 +68,8 @@ public class ScanCommand implements Runnable {
 
     // ── 5. Convert to unified model (single conversion point) ────────────────
     UnifiedGraphModel unified = GraphModelConverter.convert(model);
+    String adapterVersion = ScanCommand.class.getPackage().getImplementationVersion();
+    GraphMetadataUtil.enrich(unified, Paths.get("").toAbsolutePath(), adapterVersion);
 
     // ── 6. Write primary output file ──────────────────────────────────────────
     Path outPath = out != null ? Paths.get(out) : Paths.get("flow.json");
