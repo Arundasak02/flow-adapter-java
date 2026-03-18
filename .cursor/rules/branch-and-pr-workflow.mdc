@@ -1,0 +1,33 @@
+---
+description: Enforce branch-per-repo and PR-on-command workflow
+alwaysApply: true
+---
+
+# Branch + PR Workflow (Hard Rule)
+
+These rules are mandatory for **any Cursor agent** making changes in this repository.
+
+## Branching (required)
+
+- **Before making any code/doc changes**, create a **new branch** in this repo.
+- **Never** commit directly to `main`/`master` (or any protected branch).
+- **Branch naming**:
+  - `feature/<short-scope>`
+  - `fix/<short-scope>`
+  - `chore/<short-scope>`
+  - `docs/<short-scope>`
+
+## Pull Requests (required)
+
+- **Do not create a PR unless the user explicitly commands it.**
+- When the user commands PR creation:
+  - Ensure the branch is pushed to origin
+  - Create **one PR per repo/branch**
+  - Use the repo’s existing PR title/body style
+
+## Git hygiene
+
+- Prefer small, focused commits.
+- Never include secrets (e.g., `.env`, credentials).
+- If the user asks for a PR, confirm the branch is not dirty and tests/lints (if requested) are green.
+
