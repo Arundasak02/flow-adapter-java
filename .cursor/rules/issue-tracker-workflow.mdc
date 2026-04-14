@@ -1,0 +1,34 @@
+---
+description: Maintain docs/ISSUE-TRACKER.md; confirm before logging; verify on fix
+alwaysApply: true
+---
+
+# Issue tracker workflow (Flow Java adapter)
+
+## Source of truth
+
+- Read and update **[docs/ISSUE-TRACKER.md](docs/ISSUE-TRACKER.md)** in this repo when work touches known problems, fixes them, or surfaces new ones.
+
+## Before adding a new row to **Active**
+
+1. **Ask the user explicitly** whether they want this treated as a tracked issue or enhancement (yes/no).  
+2. If **no** — do not add to **Active**; you may note it informally in chat only.  
+3. If **yes** — assign the next `ISSUE-###` or `ENH-###`, fill Area, Summary, and a concrete **Verify** column (e.g. Maven module + grep/log check).
+
+Do **not** rely on the user to say “log it”; if something looks like a durable gap, **prompt once** with the question above, then update the file on confirmation.
+
+## When fixing something listed in **Active**
+
+1. Implement the fix.  
+2. Run the **Verify** steps from the tracker (or update them if the correct check changed).  
+3. If verify passes: set status to `resolved`, move the summary to **Resolved** with date, apply `~~strikethrough~~` on the summary line in **Resolved**, and remove the row from **Active**.  
+4. If verify fails: keep or restore **open** / `verified-active` and add a short note under **Changelog** or in the row.
+
+## When merging / releasing
+
+- Re-run **Verify** for any item marked `resolved-pending-verify`.  
+- Remove stale **Candidates** bullets if the user declined them or they were promoted to **Active**.
+
+## Other Flow repos
+
+If the same practice is desired in `flow-core-service`, `flow-engine`, etc., add a sibling `docs/ISSUE-TRACKER.md` and a short rule there; this file only governs **flow-java-adapter**.
