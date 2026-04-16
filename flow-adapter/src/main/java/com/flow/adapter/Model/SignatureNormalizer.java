@@ -8,16 +8,18 @@ public class SignatureNormalizer {
    * Normalizes signature types to match the runtime agent's NodeIdBuilder.simplifyType().
    *
    * RULES (must match agent exactly):
-   * - Strip ALL fully-qualified package prefixes, preserving generics.
+   * - Strips all package segments, keeping only the simple class name.
+   *   e.g. java.lang.String → String, com.example.dto.Order → Order
+   * - Matches what the scanner naturally produces from source-level type names (post-import resolution).
    */
   private static final Pattern FQN_PATTERN =
-      Pattern.compile("\\b[a-z][a-z0-9]*(?:\\.[a-z0-9$_]+)*\\.([A-Z][a-zA-Z0-9$_]*)");
+      Pattern.compile("\\b(?:[a-z][a-z0-9]*\\.)*([a-z][a-z0-9$_]*)\\.([A-Z][a-zA-Z0-9$_]*)");
 
   public static String normalizeSignature(String signature) {
     if (signature == null || signature.isEmpty()) {
       return signature;
     }
-    return FQN_PATTERN.matcher(signature).replaceAll("$1");
+    return FQN_PATTERN.matcher(signature).replaceAll("$2");
   }
 
   public static String createNormalizedMethodId(String className, String methodName, String signature) {
