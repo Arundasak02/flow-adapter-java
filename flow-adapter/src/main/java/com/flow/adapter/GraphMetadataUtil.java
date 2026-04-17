@@ -35,6 +35,10 @@ public final class GraphMetadataUtil {
     if (gitCommit != null) {
       model.metadata.put("gitCommit", gitCommit);
     }
+    String gitBranch = resolveGitBranch(repoRoot);
+    if (gitBranch != null) {
+      model.metadata.put("gitBranch", gitBranch);
+    }
     model.metadata.put(HASH_KEY, computeGraphHash(model));
   }
 
@@ -105,5 +109,20 @@ public final class GraphMetadataUtil {
       }
     }
     return null;
+  }
+
+  static String resolveGitBranch(Path repoRoot) {
+    if (repoRoot == null) return null;
+    Path headFile = repoRoot.resolve(".git").resolve("HEAD");
+    if (!Files.exists(headFile)) return null;
+    try {
+      String head = Files.readString(headFile, StandardCharsets.UTF_8).trim();
+      if (head.startsWith("ref: refs/heads/")) {
+        return head.substring("ref: refs/heads/".length()).trim();
+      }
+      return null; // detached HEAD
+    } catch (IOException e) {
+      return null;
+    }
   }
 }

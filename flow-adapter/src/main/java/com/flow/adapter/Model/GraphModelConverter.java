@@ -1,7 +1,9 @@
 package com.flow.adapter.Model;
 
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,8 +55,16 @@ public class GraphModelConverter {
       ClassInfo classInfo = extractClassInfo(method);
       String normalizedSig = normalizeSignature(method.signature);
 
-      unified.addMethod(normalizedId, method.methodName, method.visibility,
+      Node n = unified.addMethod(normalizedId, method.methodName, method.visibility,
           classInfo.className, classInfo.packageName, method.moduleName, normalizedSig);
+
+      if (method.methodBody != null) {
+        n.data.put("methodBody", method.methodBody);
+        n.data.put("methodBodyHash", sha256(method.methodBody));
+      }
+      if (method.annotations != null && !method.annotations.isEmpty()) {
+        n.data.put("annotations", method.annotations);
+      }
 
       if (classInfo.isValid()) {
         String classId = classInfo.getFullClassName();
@@ -224,6 +234,19 @@ public class GraphModelConverter {
       return "";
     }
     return value.startsWith("topic:") ? value.substring(6) : value;
+  }
+
+  static String sha256(String input) {
+    if (input == null) return null;
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      StringBuilder hex = new StringBuilder(hash.length * 2);
+      for (byte b : hash) hex.append(String.format("%02x", b));
+      return hex.toString();
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   private static class ClassInfo {

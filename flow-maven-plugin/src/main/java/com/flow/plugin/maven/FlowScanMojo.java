@@ -12,17 +12,21 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
-@Mojo(name = "scan", defaultPhase = LifecyclePhase.PROCESS_CLASSES, threadSafe = true)
+@Mojo(name = "scan", defaultPhase = LifecyclePhase.PROCESS_CLASSES, threadSafe = true, requiresDependencyResolution = ResolutionScope.COMPILE)
 public class FlowScanMojo extends AbstractMojo {
 
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
@@ -75,8 +79,10 @@ public class FlowScanMojo extends AbstractMojo {
     model.projectId = graphId;
     model.schema = "gef:1.1";
 
+    List<Path> classpathJars = resolveClasspathJars();
+    getLog().info("[flow-maven-plugin] classpath JARs for symbol resolution: " + classpathJars.size());
     try {
-      new JavaSourceScanner().analyze(model, srcRoot);
+      new JavaSourceScanner().analyze(model, srcRoot, classpathJars);
     } catch (Exception e) {
       throw new MojoExecutionException("Core Java source scan failed: " + e.getMessage(), e);
     }
@@ -97,6 +103,18 @@ public class FlowScanMojo extends AbstractMojo {
       Path rootCopy = Path.of(project.getBasedir().getAbsolutePath(), "flow.json");
       writeGraph(unified, rootCopy);
       getLog().info("[flow-maven-plugin] Wrote project copy at " + rootCopy.toAbsolutePath());
+    }
+  }
+
+  private List<Path> resolveClasspathJars() {
+    try {
+      return project.getCompileClasspathElements().stream()
+          .map(Path::of)
+          .filter(p -> p.toString().endsWith(".jar") && Files.exists(p))
+          .collect(Collectors.toList());
+    } catch (DependencyResolutionRequiredException e) {
+      getLog().warn("[flow-maven-plugin] Could not resolve compile classpath for symbol solver: " + e.getMessage());
+      return Collections.emptyList();
     }
   }
 

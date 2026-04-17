@@ -48,6 +48,8 @@ public class GraphModel {
 
     public String id, className, methodName, signature, packageName, moduleName;
     public Visibility visibility;
+    public String methodBody;
+    public java.util.List<String> annotations;
   }
 
   public static class EndpointNode {
